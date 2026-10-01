@@ -39,7 +39,7 @@ Question ("parle moi des 2 dernieres games de Pseudo#TAG")
 ```
 
 | Fichier | Role |
-|---|---|
+| :- | :- |
 | `app.py` | Interface, code d'acces, affichage du roast et des stats |
 | `src/ui.py` | Styles et cartes HTML (joueur, games) |
 | `src/agent.py` | Boucle Mistral (2 appels max), retries sur 429, messages d'erreur |

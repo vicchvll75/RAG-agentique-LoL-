@@ -44,8 +44,6 @@ if not st.session_state.history:
     st.markdown(
         '<div class="empty"><div class="title">Comment ça marche</div><ul>'
         "<li>Donne un Riot ID complet : <code>Pseudo#TAG</code></li>"
-        "<li>Précise le nombre de games si tu veux (2 par défaut, 10 max)</li>"
-        "<li>Exemple : <code>analyse les 3 dernières games de Pseudo#EUW</code></li>"
         "</ul></div>",
         unsafe_allow_html=True,
     )

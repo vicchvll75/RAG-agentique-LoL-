@@ -35,10 +35,14 @@ class RiotRateLimited(RiotError):
     pass
 
 
+class RiotMissingKey(RiotError):
+    pass
+
+
 def _get(url: str, params: dict | None = None):
     key = secret("RIOT_API_KEY")
     if not key:
-        raise RiotAuthError("RIOT_API_KEY manquante dans les secrets.")
+        raise RiotMissingKey("RIOT_API_KEY manquante dans les secrets.")
 
     for attempt in range(MAX_RETRIES + 1):
         # La cle passe dans un header, jamais dans l'URL (qui peut finir dans des logs).

@@ -33,7 +33,11 @@ MISTRAL_BUSY_MESSAGE = (
 RIOT_MESSAGES = {
     riot_api.RiotAuthError: (
         "La clé Riot a expiré (elle dure 24 h, merci Riot). Dis à l'admin de la renouveler, "
-        "en attendant ton pote est sauvé."
+        "en attendant t'es sauvé."
+    ),
+    riot_api.RiotMissingKey: (
+        "Aucune clé Riot n'est configurée, je peux rien analyser. Dis à l'admin d'ajouter "
+        "RIOT_API_KEY dans les secrets, en attendant t'es sauvé."
     ),
     riot_api.RiotRateLimited: (
         "Riot me dit de me calmer, trop de requêtes. Réessaie dans une ou deux minutes."

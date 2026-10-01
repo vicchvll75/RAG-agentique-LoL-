@@ -63,6 +63,12 @@ def test_cle_expiree(monkeypatch):
         riot_api._get("https://x")
 
 
+def test_cle_manquante(monkeypatch):
+    monkeypatch.setattr("src.riot_api.secret", lambda name, default=None: None)
+    with pytest.raises(riot_api.RiotMissingKey):
+        riot_api._get("https://x")
+
+
 def test_rate_limit_riot_attend_puis_reussit(monkeypatch):
     responses = iter([FakeResponse(429, {"Retry-After": "1"}), FakeResponse(200)])
     sleeps = []

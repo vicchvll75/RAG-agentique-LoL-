@@ -4,13 +4,10 @@ Lancement local (venv active) :
     streamlit run app.py
 """
 
-import hmac
-
 import streamlit as st
 
 from src import ui
 from src.agent import answer
-from src.config import secret
 
 RIOT_DISCLAIMER = (
     "LoL Analyzer isn't endorsed by Riot Games and doesn't reflect the views or opinions of "
@@ -28,31 +25,6 @@ def legal_footer() -> None:
     st.markdown(f'<div class="legal">{RIOT_DISCLAIMER}</div>', unsafe_allow_html=True)
 
 
-def login() -> bool:
-    """Code d'accès partagé entre potes : protège les quotas Riot et Mistral."""
-    if st.session_state.get("authenticated"):
-        return True
-    expected = secret("APP_PASSWORD")
-    if not expected:
-        st.error("APP_PASSWORD manquant dans les secrets : accès bloqué.")
-        return False
-
-    st.markdown(ui.hero("Accès réservé. Entre le code pour continuer."), unsafe_allow_html=True)
-    _, center, _ = st.columns([1, 2, 1])
-    with center:
-        with st.form("login", border=True):
-            password = st.text_input("Code d'accès", type="password", placeholder="Code d'accès",
-                                     label_visibility="collapsed")
-            submitted = st.form_submit_button("Entrer", use_container_width=True, type="primary")
-        if submitted:
-            # compare_digest : comparaison en temps constant.
-            if hmac.compare_digest(password.encode(), expected.encode()):
-                st.session_state.authenticated = True
-                st.rerun()
-            st.error("Code incorrect.")
-    return False
-
-
 def show_details(display: dict | None, expanded: bool) -> None:
     if not display or not display.get("games"):
         return
@@ -62,10 +34,6 @@ def show_details(display: dict | None, expanded: bool) -> None:
     with st.expander(label, expanded=expanded):
         st.markdown("".join(ui.game_card(g) for g in games), unsafe_allow_html=True)
 
-
-if not login():
-    legal_footer()
-    st.stop()
 
 st.markdown(ui.hero("Tes dernières games, analysées sans pitié."), unsafe_allow_html=True)
 

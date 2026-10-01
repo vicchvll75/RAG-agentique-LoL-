@@ -40,7 +40,7 @@ Question ("parle moi des 2 dernieres games de Pseudo#TAG")
 
 | Fichier | Role |
 | :- | :- |
-| `app.py` | Interface, code d'acces, affichage du roast et des stats |
+| `app.py` | Interface, affichage du roast et des stats |
 | `src/ui.py` | Styles et cartes HTML (joueur, games) |
 | `src/agent.py` | Boucle Mistral (2 appels max), retries sur 429, messages d'erreur |
 | `src/prompts.py` | System prompt du roast et exemples de style |
@@ -105,9 +105,8 @@ python -m pytest
      ```toml
      RIOT_API_KEY = "RGAPI-..."
      MISTRAL_API_KEY = "..."
-     APP_PASSWORD = "..."
      ```
-6. Clique **Deploy**. Partage l'URL et le mot de passe a tes potes.
+6. Clique **Deploy**. Partage l'URL a tes potes.
 
 Pour changer un secret plus tard (par exemple la cle Riot de dev qui expire) : sur
 share.streamlit.io, menu **⋮** de l'appli, **Settings**, onglet **Secrets**. L'appli
@@ -125,7 +124,8 @@ redemarre toute seule avec la nouvelle valeur.
   continu sur l'offre gratuite de ce compte. Modifiable avec le secret `MISTRAL_MODEL`.
   Un modele 8B peut encore mal formuler un chiffre, d'ou le tableau de verification.
 * **Cache** : sur Streamlit Cloud, le disque est efface a chaque redemarrage de l'appli.
-* **Mot de passe** : protection simple pour les quotas, pas une vraie authentification.
+* **Acces ouvert** : toute personne qui a le lien peut utiliser l'appli et consommer les quotas
+  Riot et Mistral. Ne partage le lien qu'avec des gens de confiance.
 
 ## Mention legale
 

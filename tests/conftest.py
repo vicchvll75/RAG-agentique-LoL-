@@ -40,7 +40,7 @@ def make_match(match_id="EUW1_1", queue=420, duration=1800, win=False):
 
 @pytest.fixture(autouse=True)
 def fake_secrets(monkeypatch):
-    values = {"RIOT_API_KEY": "test", "MISTRAL_API_KEY": "test", "APP_PASSWORD": "pw"}
+    values = {"RIOT_API_KEY": "test", "MISTRAL_API_KEY": "test"}
 
     def fake(name, default=None):
         return values.get(name, default)

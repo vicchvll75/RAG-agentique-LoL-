@@ -56,12 +56,30 @@ def _clean(text: str) -> str:
     return text.strip()
 
 
-class MistralBusy(Exception):
-    pass
+class MistralError(Exception):
+    """Erreur Mistral, avec un message affichable dans l'appli."""
+
+    def __init__(self, user_message: str):
+        super().__init__(user_message)
+        self.user_message = user_message
 
 
-class MistralUnreachable(Exception):
-    pass
+class MistralBusy(MistralError):
+    def __init__(self):
+        super().__init__(MISTRAL_BUSY_MESSAGE)
+
+
+class MistralUnreachable(MistralError):
+    def __init__(self):
+        super().__init__(MISTRAL_UNREACHABLE_MESSAGE)
+
+
+def _sdk_error_message(status: int, model: str) -> str:
+    if status == 401:
+        return "La clé Mistral est refusée. Vérifie MISTRAL_API_KEY dans les secrets de l'appli."
+    if status == 403:
+        return f"Le modèle {model} n'est pas accessible avec cette clé Mistral. Change MISTRAL_MODEL."
+    return f"Mistral a renvoyé une erreur {status}. Réessaie, et si ça continue, recharge la page."
 
 
 @dataclass
@@ -73,7 +91,7 @@ class Reply:
 def _client() -> Mistral:
     key = secret("MISTRAL_API_KEY")
     if not key:
-        raise RuntimeError("MISTRAL_API_KEY manquante dans les secrets.")
+        raise MistralError("Aucune clé Mistral configurée. Ajoute MISTRAL_API_KEY dans les secrets.")
     return Mistral(api_key=key)
 
 
@@ -98,7 +116,7 @@ def _complete(messages: list[dict], tool_choice: str):
             time.sleep(2)
         except SDKError as exc:
             if exc.status_code != 429:
-                raise
+                raise MistralError(_sdk_error_message(exc.status_code, model)) from None
             if attempt == len(RETRY_WAITS_S):
                 raise MistralBusy() from None
             time.sleep(RETRY_WAITS_S[attempt])
@@ -113,6 +131,7 @@ def _tag_was_given(riot_id: str, user_text: str) -> bool:
 
 
 def _run_tool(arguments, user_text: str) -> tuple[dict | None, str | None]:
+    # user_text : tous les messages de l'utilisateur, pour accepter un tag donne plus tot.
     """Execute l'outil. Renvoie (resultat, None) ou (None, message d'erreur a afficher)."""
     if isinstance(arguments, str):
         arguments = json.loads(arguments or "{}")
@@ -135,21 +154,23 @@ def _run_tool(arguments, user_text: str) -> tuple[dict | None, str | None]:
 
 def answer(history: list[dict]) -> Reply:
     """Repond au dernier message de l'historique (liste de {"role", "content"})."""
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *history[-HISTORY_LIMIT:]]
+    recent = history[-HISTORY_LIMIT:]
+    # La conversation envoyee doit commencer par un message de l'utilisateur.
+    while recent and recent[0]["role"] != "user":
+        recent = recent[1:]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}, *recent]
 
     try:
         first = _complete(messages, "auto").choices[0].message
-    except MistralBusy:
-        return Reply(MISTRAL_BUSY_MESSAGE)
-    except MistralUnreachable:
-        return Reply(MISTRAL_UNREACHABLE_MESSAGE)
+    except MistralError as exc:
+        return Reply(exc.user_message)
 
     if not first.tool_calls:
         return Reply(_clean(first.content or ""))
 
     # Un seul joueur par roast : on traite le premier appel d'outil.
     call = first.tool_calls[0]
-    user_text = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
+    user_text = " ".join(m["content"] for m in history if m["role"] == "user")
     result, error = _run_tool(call.function.arguments, user_text)
     if error:
         return Reply(error)
@@ -172,8 +193,6 @@ def answer(history: list[dict]) -> Reply:
 
     try:
         roast = _complete(messages, "none").choices[0].message.content or ""
-    except MistralBusy:
-        return Reply(MISTRAL_BUSY_MESSAGE, result["affichage"])
-    except MistralUnreachable:
-        return Reply(MISTRAL_UNREACHABLE_MESSAGE, result["affichage"])
+    except MistralError as exc:
+        return Reply(exc.user_message, result["affichage"])
     return Reply(_clean(roast), result["affichage"])

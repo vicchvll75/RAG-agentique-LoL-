@@ -69,6 +69,40 @@ def test_mistral_injoignable(monkeypatch):
     assert agent.answer([{"role": "user", "content": "A#EUW"}]).text == agent.MISTRAL_UNREACHABLE_MESSAGE
 
 
+def test_cle_mistral_refusee(monkeypatch):
+    _fake_llm(monkeypatch, [agent.MistralError(agent._sdk_error_message(401, "m"))])
+    assert "clé Mistral" in agent.answer([{"role": "user", "content": "A#EUW"}]).text
+
+
+def test_tag_donne_dans_un_message_precedent(monkeypatch):
+    _fake_llm(monkeypatch, [
+        _response(tool_calls=[_tool_call('{"riot_id": "A#EUW"}')]),
+        _response("roast"),
+    ])
+    monkeypatch.setattr(agent, "get_player_games",
+                        lambda **_: {"pour_le_llm": "x", "affichage": {"games": []}})
+    history = [
+        {"role": "user", "content": "parle moi de A #EUW"},
+        {"role": "assistant", "content": "..."},
+        {"role": "user", "content": "et sa derniere game ?"},
+    ]
+    assert agent.answer(history).text == "roast"
+
+
+def test_historique_commence_par_l_utilisateur(monkeypatch):
+    seen = []
+
+    def complete(messages, tool_choice):
+        seen.append(messages)
+        return _response("ok")
+
+    monkeypatch.setattr(agent, "_complete", complete)
+    history = [{"role": r, "content": "x"} for r in ["user", "assistant"] * 4]
+    history.append({"role": "user", "content": "y"})
+    agent.answer(history)
+    assert seen[0][1]["role"] == "user"
+
+
 def test_roast_complet(monkeypatch):
     calls = _fake_llm(monkeypatch, [
         _response(tool_calls=[_tool_call({"riot_id": "A#EUW", "count": 2})]),

@@ -23,14 +23,14 @@ def parse_riot_id(raw: str) -> tuple[str, str]:
     match = RIOT_ID_RE.match(raw or "")
     if not match:
         raise ToolError(
-            f"\"{raw}\" c'est pas un Riot ID complet frero. Il me faut le format "
+            f"\"{raw}\" c'est pas un Riot ID complet frérot. Il me faut le format "
             "Pseudo#TAG (genre Faker#KR1), je vais pas deviner qui tu veux humilier."
         )
     return match.group(1), match.group(2)
 
 
 def get_player_games(riot_id: str, count: int = DEFAULT_GAMES, region: str = DEFAULT_REGION) -> dict:
-    """Renvoie {"pour_le_llm": resume chiffre, "tableau": lignes affichees sous le roast}."""
+    """Renvoie {"pour_le_llm": resume chiffre, "affichage": donnees pour l'interface}."""
     game_name, tag_line = parse_riot_id(riot_id)
     count = max(1, min(int(count or DEFAULT_GAMES), MAX_GAMES))
     region = (region or DEFAULT_REGION).upper()
@@ -41,13 +41,13 @@ def get_player_games(riot_id: str, count: int = DEFAULT_GAMES, region: str = DEF
         account = riot_api.get_account(game_name, tag_line, region)
     except riot_api.RiotNotFound:
         raise ToolError(
-            f"{game_name}#{tag_line} existe pas sur {region}. Verifie le pseudo et le tag, "
-            "ou alors meme Riot a honte de lui."
+            f"{game_name}#{tag_line} existe pas sur {region}. Vérifie le pseudo et le tag, "
+            "ou alors même Riot a honte de lui."
         )
     puuid = account["puuid"]
     player = f"{account.get('gameName', game_name)}#{account.get('tagLine', tag_line)}"
 
-    champions = ddragon.champion_names()
+    champions = ddragon.champions()
     items = ddragon.item_names()
 
     games = []
@@ -61,22 +61,31 @@ def get_player_games(riot_id: str, count: int = DEFAULT_GAMES, region: str = DEF
 
     if not games:
         raise ToolError(
-            f"{player} a aucune game recente sur la Faille. Soit il a desinstalle, "
+            f"{player} a aucune game récente sur la Faille. Soit il a désinstallé, "
             "soit il joue qu'en ARAM. Dans les deux cas c'est suspect."
         )
 
     wins = sum(g["resultat"] == "VICTOIRE" for g in games)
+    ranked = stats.ranked_summary(riot_api.get_ranked_entries(puuid, region))
     summary = {
         "joueur": player,
         "region": region,
-        "classement": stats.ranked_summary(riot_api.get_ranked_entries(puuid, region)),
+        "classement": ranked,
         "bilan_sur_ces_games": f"{wins} victoire(s), {len(games) - wins} defaite(s) sur {len(games)}",
         "games_du_plus_recent_au_plus_ancien": games,
     }
     if len(games) < count:
         summary["note"] = f"Seulement {len(games)} game(s) sur la Faille trouvee(s) recemment."
 
-    return {"pour_le_llm": summary, "tableau": [stats.table_row(g) for g in games]}
+    display = {"joueur": player, "region": region, "classement": ranked, "games": games}
+    try:
+        summoner = riot_api.get_summoner(puuid, region)
+        display["niveau"] = summoner.get("summonerLevel")
+        display["icone"] = ddragon.profile_icon_url(summoner["profileIconId"])
+    except (riot_api.RiotError, KeyError):
+        pass  # Purement decoratif : on s'en passe si Riot ne repond pas.
+
+    return {"pour_le_llm": stats.for_llm(summary), "affichage": display}
 
 
 TOOLS_SCHEMA = [

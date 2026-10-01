@@ -1,7 +1,7 @@
 from src import stats
 from tests.conftest import PUUID, make_match
 
-CHAMPS = {7: "LeBlanc", 122: "Darius", 1: "Annie"}
+CHAMPS = {7: {"name": "LeBlanc", "icon": "x"}, 122: {"name": "Darius", "icon": "y"}, 1: {"name": "Annie", "icon": "z"}}
 
 
 def test_stats_calcules_en_python():

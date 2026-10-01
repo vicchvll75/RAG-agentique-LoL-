@@ -50,14 +50,14 @@ def _get(url: str, params: dict | None = None):
             return response.json()
         if response.status_code in (401, 403):
             raise RiotAuthError(
-                "Cle Riot invalide ou expiree (la cle de dev dure 24 h)."
+                "Clé Riot invalide ou expirée (la clé de dev dure 24 h)."
             )
         if response.status_code == 404:
             raise RiotNotFound("Introuvable chez Riot.")
         if response.status_code == 429:
             wait = int(response.headers.get("Retry-After", "2"))
             if wait > MAX_WAIT_S or attempt == MAX_RETRIES:
-                raise RiotRateLimited("Limite de requetes Riot atteinte.")
+                raise RiotRateLimited("Limite de requêtes Riot atteinte.")
             time.sleep(wait)
             continue
         if response.status_code >= 500 and attempt < MAX_RETRIES:
@@ -65,7 +65,7 @@ def _get(url: str, params: dict | None = None):
             continue
         raise RiotError(f"Erreur Riot inattendue ({response.status_code}).")
 
-    raise RiotError("Riot ne repond pas.")
+    raise RiotError("Riot ne répond pas.")
 
 
 def _routes(region: str) -> tuple[str, str]:
@@ -106,3 +106,8 @@ def get_match(match_id: str, region: str) -> dict:
 def get_ranked_entries(puuid: str, region: str) -> list[dict]:
     platform, _ = _routes(region)
     return _get(f"{platform}/lol/league/v4/entries/by-puuid/{puuid}")
+
+
+def get_summoner(puuid: str, region: str) -> dict:
+    platform, _ = _routes(region)
+    return _get(f"{platform}/lol/summoner/v4/summoners/by-puuid/{puuid}")

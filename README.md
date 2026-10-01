@@ -1,4 +1,4 @@
-# Roast LoL : RAG agentique sur League of Legends
+# LoL Analyzer : RAG agentique sur League of Legends
 
 Une appli de chat Streamlit : tu ecris "parle moi des 2 dernieres games de Pseudo#TAG" et
 un LLM taille le joueur sur ses vraies stats, avec le ton d'un pote toxique de Discord.
@@ -28,18 +28,20 @@ Question ("parle moi des 2 dernieres games de Pseudo#TAG")
        account v1 (route europe)    Riot ID vers PUUID
        match v5 (route europe)      ids des derniers matchs puis detail, en cache disque
        league v4 (plateforme euw1)  rang et winrate global
+       summoner v4 (plateforme)     icone de profil et niveau
        Data Dragon                  noms des champions et objets en francais
   -> Calcul des stats en Python (src/stats.py)
        KDA, CS/min, degats, part des degats, vision, pinks, temps passe mort,
        participation aux kills, ecarts avec l'adversaire direct de lane,
        et une liste d'"angles de moquerie" chiffres
   -> Agent Mistral, appel 2 : ecrit le roast a partir de ce resume
-  -> Streamlit : roast + tableau repliable des stats
+  -> Streamlit : roast + carte du joueur + cartes des games (repliables)
 ```
 
 | Fichier | Role |
 |---|---|
-| `app.py` | Interface, mot de passe, affichage du roast et du tableau |
+| `app.py` | Interface, code d'acces, affichage du roast et des stats |
+| `src/ui.py` | Styles et cartes HTML (joueur, games) |
 | `src/agent.py` | Boucle Mistral (2 appels max), retries sur 429, messages d'erreur |
 | `src/prompts.py` | System prompt du roast et exemples de style |
 | `src/tools.py` | Outil `get_player_games` et son schema de function calling |
@@ -127,7 +129,7 @@ redemarre toute seule avec la nouvelle valeur.
 
 ## Mention legale
 
-Roast LoL isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot
+LoL Analyzer isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot
 Games or anyone officially involved in producing or managing Riot Games properties. Riot
 Games, and all associated properties are trademarks or registered trademarks of Riot
 Games, Inc.

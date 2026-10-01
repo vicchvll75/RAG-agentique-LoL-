@@ -46,7 +46,7 @@ def test_cle_riot_expiree(monkeypatch):
         raise riot_api.RiotAuthError("x")
 
     monkeypatch.setattr(agent, "get_player_games", boom)
-    assert "expire" in agent.answer([{"role": "user", "content": "A#EUW"}]).text
+    assert "expiré" in agent.answer([{"role": "user", "content": "A#EUW"}]).text
 
 
 def test_mistral_sature(monkeypatch):
@@ -60,7 +60,7 @@ def test_roast_complet(monkeypatch):
         _response("Miskine, 11 morts."),
     ])
     monkeypatch.setattr(agent, "get_player_games",
-                        lambda **_: {"pour_le_llm": {"x": 1}, "tableau": [{"KDA": 0.45}]})
+                        lambda **_: {"pour_le_llm": {"x": 1}, "affichage": {"games": []}})
     reply = agent.answer([{"role": "user", "content": "A#EUW"}])
-    assert reply.text == "Miskine, 11 morts." and reply.table == [{"KDA": 0.45}]
+    assert reply.text == "Miskine, 11 morts." and reply.display == {"games": []}
     assert calls == ["auto", "none"]

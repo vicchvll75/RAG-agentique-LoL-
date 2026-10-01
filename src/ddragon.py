@@ -1,4 +1,4 @@
-"""Data Dragon : fichiers statiques officiels de Riot (noms des champions et objets en francais)."""
+"""Data Dragon : fichiers statiques officiels de Riot (noms et icones des champions, objets)."""
 
 import requests
 
@@ -30,10 +30,21 @@ def _data(kind: str) -> dict:
     return data
 
 
-def champion_names() -> dict[int, str]:
-    """Identifiant numerique du champion vers son nom affiche (ex. 62 vers Wukong)."""
-    return {int(c["key"]): c["name"] for c in _data("champion").values()}
+def champions() -> dict[int, dict]:
+    """Identifiant numerique du champion vers {"name", "icon"} (ex. 62 vers Wukong)."""
+    version = latest_version()
+    return {
+        int(c["key"]): {
+            "name": c["name"],
+            "icon": f"{DDRAGON}/cdn/{version}/img/champion/{c['image']['full']}",
+        }
+        for c in _data("champion").values()
+    }
 
 
 def item_names() -> dict[int, str]:
     return {int(item_id): item["name"] for item_id, item in _data("item").items()}
+
+
+def profile_icon_url(icon_id: int) -> str:
+    return f"{DDRAGON}/cdn/{latest_version()}/img/profileicon/{icon_id}.png"

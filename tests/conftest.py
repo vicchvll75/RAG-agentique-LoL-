@@ -51,5 +51,5 @@ def fake_secrets(monkeypatch):
 
 @pytest.fixture
 def no_ddragon(monkeypatch):
-    monkeypatch.setattr("src.ddragon.champion_names", lambda: {7: "LeBlanc", 122: "Darius", 1: "Annie"})
+    monkeypatch.setattr("src.ddragon.champions", lambda: {7: {"name": "LeBlanc", "icon": "x"}, 122: {"name": "Darius", "icon": "y"}, 1: {"name": "Annie", "icon": "z"}})
     monkeypatch.setattr("src.ddragon.item_names", lambda: {3020: "Chaussures du sorcier"})

@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 # Files de la Faille de l'invocateur (les seules ou l'adversaire de lane a un sens).
 SR_QUEUES = {
     400: "Normale draft",
-    420: "Classee solo/duo",
+    420: "Classée solo/duo",
     430: "Normale blind",
-    440: "Classee flex",
+    440: "Classée flex",
     480: "Swiftplay",
     490: "Partie rapide",
 }
@@ -33,10 +33,12 @@ def _kda(p: dict) -> float:
     return round((p["kills"] + p["assists"]) / max(1, p["deaths"]), 2)
 
 
-def _line(p: dict, minutes: float, champions: dict[int, str]) -> dict:
+def _line(p: dict, minutes: float, champions: dict[int, dict]) -> dict:
     """Stats brutes d'un participant, utilisees pour le joueur et pour son adversaire."""
+    champion = champions.get(p["championId"], {})
     return {
-        "champion": champions.get(p["championId"], p["championName"]),
+        "champion": champion.get("name", p["championName"]),
+        "icone": champion.get("icon"),
         "kills": p["kills"],
         "morts": p["deaths"],
         "assists": p["assists"],
@@ -90,7 +92,7 @@ def _angles(me: dict, opp: dict | None, role: str) -> list[str]:
     return angles
 
 
-def match_stats(match: dict, puuid: str, champions: dict[int, str], items: dict[int, str]) -> dict | None:
+def match_stats(match: dict, puuid: str, champions: dict[int, dict], items: dict[int, str]) -> dict | None:
     """Resume chiffre d'un match pour un joueur. None si hors Faille ou remake."""
     info = match["info"]
     if info["queueId"] not in SR_QUEUES or info["gameDuration"] < REMAKE_MAX_S:
@@ -163,31 +165,11 @@ def ranked_summary(entries: list[dict]) -> dict:
     return summary or {"info": "aucune partie classee cette saison"}
 
 
-def table_row(stats: dict) -> dict:
-    """Ligne du tableau affiche sous le roast (les chiffres exacts envoyes au LLM)."""
-    me, opp = stats["joueur"], stats["adversaire_de_lane"]
-    row = {
-        "Date (UTC)": stats["date_utc"],
-        "File": stats["file"],
-        "Resultat": stats["resultat"],
-        "Champion": me["champion"],
-        "Role": stats["role"],
-        "Duree": stats["duree"],
-        "K/D/A": f"{me['kills']}/{me['morts']}/{me['assists']}",
-        "KDA": me["kda"],
-        "CS/min": me["cs_par_min"],
-        "Degats": me["degats_champions"],
-        "Part degats %": me["part_degats_equipe_pct"],
-        "KP %": me["participation_kills_pct"],
-        "Vision": me["score_vision"],
-        "Pinks": me["pinks_achetees"],
-        "Temps mort (s)": me["temps_mort_s"],
-    }
-    if opp:
-        row.update({
-            "Adversaire": opp["champion"],
-            "Adv K/D/A": f"{opp['kills']}/{opp['morts']}/{opp['assists']}",
-            "Adv CS/min": opp["cs_par_min"],
-            "Adv degats": opp["degats_champions"],
-        })
-    return row
+
+def for_llm(value):
+    """Copie du resume sans les URLs d'icones (inutiles au LLM, et autant de tokens en moins)."""
+    if isinstance(value, dict):
+        return {k: for_llm(v) for k, v in value.items() if k != "icone"}
+    if isinstance(value, list):
+        return [for_llm(v) for v in value]
+    return value

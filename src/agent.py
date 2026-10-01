@@ -9,7 +9,7 @@ sans second appel, pour economiser le quota gratuit.
 import json
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from mistralai.client import Mistral
 from mistralai.client.errors import SDKError
@@ -27,16 +27,16 @@ HISTORY_LIMIT = 6
 _MISTRAL_LOCK = threading.Lock()
 
 MISTRAL_BUSY_MESSAGE = (
-    "Le cerveau du bot est en PLS, trop de monde veut se faire roaster en meme temps "
-    "(offre gratuite de Mistral, merci la pauvrete). Reessaie dans une minute."
+    "Le cerveau du bot est en PLS, trop de monde veut se faire analyser en même temps "
+    "(offre gratuite de Mistral, merci la pauvreté). Réessaie dans une minute."
 )
 RIOT_MESSAGES = {
     riot_api.RiotAuthError: (
-        "La cle Riot a expire (elle dure 24 h, merci Riot). Dis a l'admin de la renouveler, "
-        "en attendant ton pote est sauve."
+        "La clé Riot a expiré (elle dure 24 h, merci Riot). Dis à l'admin de la renouveler, "
+        "en attendant ton pote est sauvé."
     ),
     riot_api.RiotRateLimited: (
-        "Riot me dit de me calmer, trop de requetes. Reessaie dans une ou deux minutes."
+        "Riot me dit de me calmer, trop de requêtes. Réessaie dans une ou deux minutes."
     ),
 }
 
@@ -55,7 +55,7 @@ class MistralBusy(Exception):
 @dataclass
 class Reply:
     text: str
-    table: list[dict] = field(default_factory=list)
+    display: dict | None = None
 
 
 def _client() -> Mistral:
@@ -96,9 +96,9 @@ def _run_tool(arguments) -> tuple[dict | None, str | None]:
     except ToolError as exc:
         return None, exc.user_message
     except riot_api.RiotError as exc:
-        return None, RIOT_MESSAGES.get(type(exc), f"Probleme cote Riot : {exc.user_message}")
+        return None, RIOT_MESSAGES.get(type(exc), f"Problème côté Riot : {exc.user_message}")
     except TypeError:
-        return None, "J'ai rien compris. Donne moi un Riot ID au format Pseudo#TAG."
+        return None, "J'ai rien compris. Donne-moi un Riot ID au format Pseudo#TAG."
 
 
 def answer(history: list[dict]) -> Reply:
@@ -138,5 +138,5 @@ def answer(history: list[dict]) -> Reply:
     try:
         roast = _complete(messages, "none").choices[0].message.content or ""
     except MistralBusy:
-        return Reply(MISTRAL_BUSY_MESSAGE, result["tableau"])
-    return Reply(_clean(roast), result["tableau"])
+        return Reply(MISTRAL_BUSY_MESSAGE, result["affichage"])
+    return Reply(_clean(roast), result["affichage"])

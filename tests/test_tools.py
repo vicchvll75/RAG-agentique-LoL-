@@ -21,6 +21,8 @@ def _fake_riot(monkeypatch, *, account=None, ids=(), matches=None):
     monkeypatch.setattr(riot_api, "get_match_ids", lambda *_: list(ids))
     monkeypatch.setattr(riot_api, "get_match", lambda match_id, _: matches[match_id])
     monkeypatch.setattr(riot_api, "get_ranked_entries", lambda *_: [])
+    monkeypatch.setattr(riot_api, "get_summoner", lambda *_: {"summonerLevel": 30, "profileIconId": 1})
+    monkeypatch.setattr("src.ddragon.profile_icon_url", lambda icon_id: f"icon{icon_id}")
 
 
 def test_riot_id_inexistant(monkeypatch, no_ddragon):
@@ -42,7 +44,9 @@ def test_count_borne_et_filtre_faille(monkeypatch, no_ddragon):
     result = tools.get_player_games("Moi#EUW", count=99)
     games = result["pour_le_llm"]["games_du_plus_recent_au_plus_ancien"]
     assert [g["match_id"] for g in games] == ["B", "C"]
-    assert len(result["tableau"]) == 2
+    assert len(result["affichage"]["games"]) == 2
+    assert result["affichage"]["niveau"] == 30
+    assert "icone" not in str(result["pour_le_llm"])
 
 
 class FakeResponse:

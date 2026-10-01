@@ -39,6 +39,16 @@ def test_tag_manquant_sans_second_appel(monkeypatch):
     assert "Pseudo#TAG" in reply.text and calls == ["auto"]
 
 
+def test_tag_invente_par_le_modele(monkeypatch):
+    calls = _fake_llm(monkeypatch, [_response(tool_calls=[_tool_call('{"riot_id": "Pseudo#TAG"}')])])
+    reply = agent.answer([{"role": "user", "content": "roast Pseudo stp"}])
+    assert "tag" in reply.text and calls == ["auto"]
+
+
+def test_tag_avec_espace_accepte():
+    assert agent._tag_was_given("AdolphSingler#667", "parle moi de AdolphSingler #667")
+
+
 def test_cle_riot_expiree(monkeypatch):
     _fake_llm(monkeypatch, [_response(tool_calls=[_tool_call('{"riot_id": "A#EUW"}')])])
 
@@ -54,13 +64,18 @@ def test_mistral_sature(monkeypatch):
     assert agent.answer([{"role": "user", "content": "A#EUW"}]).text == agent.MISTRAL_BUSY_MESSAGE
 
 
+def test_mistral_injoignable(monkeypatch):
+    _fake_llm(monkeypatch, [agent.MistralUnreachable()])
+    assert agent.answer([{"role": "user", "content": "A#EUW"}]).text == agent.MISTRAL_UNREACHABLE_MESSAGE
+
+
 def test_roast_complet(monkeypatch):
     calls = _fake_llm(monkeypatch, [
         _response(tool_calls=[_tool_call({"riot_id": "A#EUW", "count": 2})]),
         _response("Miskine, 11 morts."),
     ])
     monkeypatch.setattr(agent, "get_player_games",
-                        lambda **_: {"pour_le_llm": {"x": 1}, "affichage": {"games": []}})
+                        lambda **_: {"pour_le_llm": "JOUEUR : A#EUW", "affichage": {"games": []}})
     reply = agent.answer([{"role": "user", "content": "A#EUW"}])
     assert reply.text == "Miskine, 11 morts." and reply.display == {"games": []}
     assert calls == ["auto", "none"]

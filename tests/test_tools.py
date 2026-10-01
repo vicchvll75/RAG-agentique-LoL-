@@ -42,8 +42,8 @@ def test_count_borne_et_filtre_faille(monkeypatch, no_ddragon):
     _fake_riot(monkeypatch, account={"puuid": "puuid-moi", "gameName": "Moi", "tagLine": "EUW"},
                ids=["A", "B", "C"], matches=matches)
     result = tools.get_player_games("Moi#EUW", count=99)
-    games = result["pour_le_llm"]["games_du_plus_recent_au_plus_ancien"]
-    assert [g["match_id"] for g in games] == ["B", "C"]
+    assert [g["match_id"] for g in result["affichage"]["games"]] == ["B", "C"]
+    assert "=== GAME 2" in result["pour_le_llm"] and "GAME 3" not in result["pour_le_llm"]
     assert len(result["affichage"]["games"]) == 2
     assert result["affichage"]["niveau"] == 30
     assert "icone" not in str(result["pour_le_llm"])

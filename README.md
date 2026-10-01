@@ -62,7 +62,8 @@ remakes de moins de 5 minutes aussi.
    donne le bon KDA a chaque fois.
 2. **Testable.** Les stats sont verifiees par des tests unitaires ; un texte de LLM ne l'est pas.
 3. **Petit modele suffisant.** Le LLM recoit des chiffres deja calcules et des angles de
-   moquerie deja choisis : il n'a plus qu'a rediger, ce qu'un modele 8B gratuit fait bien.
+   moquerie deja choisis, une fiche par game : il n'a plus qu'a rediger, ce qu'un petit
+   modele gratuit fait bien.
 4. **Preuve.** Le tableau affiche sous le roast contient exactement les chiffres envoyes au LLM.
 
 ## Lancer en local (Windows, PowerShell)
@@ -120,9 +121,10 @@ redemarre toute seule avec la nouvelle valeur.
 * **Debit Mistral gratuit** : tres limite et partage entre tous les utilisateurs. Un roast
   coute 2 appels ; les erreurs n'en coutent qu'un. En cas de 429 l'appli reessaie apres
   10 puis 25 secondes, puis affiche un message. Les appels sont faits un par un.
-* **Modele** : `ministral-8b-latest` par defaut, car `mistral-small-latest` renvoie 429 en
-  continu sur l'offre gratuite de ce compte. Modifiable avec le secret `MISTRAL_MODEL`.
-  Un modele 8B peut encore mal formuler un chiffre, d'ou le tableau de verification.
+* **Modele** : `open-mistral-nemo` par defaut, car les modeles small, medium et magistral
+  renvoient 429 en continu sur l'offre gratuite de ce compte. `ministral-8b-latest` marche
+  aussi mais melange les chiffres entre les games. Modifiable avec le secret `MISTRAL_MODEL`.
+  Un petit modele peut encore mal formuler un chiffre, d'ou les cartes de verification.
 * **Cache** : sur Streamlit Cloud, le disque est efface a chaque redemarrage de l'appli.
 * **Acces ouvert** : toute personne qui a le lien peut utiliser l'appli et consommer les quotas
   Riot et Mistral. Ne partage le lien qu'avec des gens de confiance.

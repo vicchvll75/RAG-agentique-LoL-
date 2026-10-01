@@ -166,10 +166,35 @@ def ranked_summary(entries: list[dict]) -> dict:
 
 
 
-def for_llm(value):
-    """Copie du resume sans les URLs d'icones (inutiles au LLM, et autant de tokens en moins)."""
-    if isinstance(value, dict):
-        return {k: for_llm(v) for k, v in value.items() if k != "icone"}
-    if isinstance(value, list):
-        return [for_llm(v) for v in value]
-    return value
+
+def _game_brief(index: int, game: dict) -> str:
+    """Fiche d'une game reduite aux faits verifies : moins de chiffres, moins de confusions."""
+    me, opp = game["joueur"], game["adversaire_de_lane"]
+    title = f"GAME {index}" + (" (la plus recente)" if index == 1 else "")
+    lines = [
+        f"=== {title} : {game['resultat']} avec {me['champion']} ({game['role']}), {game['duree']} ===",
+        f"Adversaire de lane : {opp['champion']}" if opp else "Adversaire de lane : inconnu",
+        f"{me['kills']} kills, {me['morts']} morts, {me['assists']} assists (KDA {me['kda']})",
+        "Faits verifies a utiliser pour cette game (ne cite aucun autre chiffre) :",
+        *[f"- {angle}" for angle in game["angles_de_moquerie"]],
+    ]
+    return "\n".join(lines)
+
+
+def llm_brief(player: str, ranked: dict, games: list[dict]) -> str:
+    """Resume texte envoye au LLM : plus fiable qu'un JSON imbrique pour un petit modele."""
+    ranks = [
+        f"{label} : {entry['rang']}, {entry['winrate_pct']} % de winrate "
+        f"({entry['victoires']} V, {entry['defaites']} D)"
+        for label, entry in (("Solo/duo", ranked.get("solo_duo")), ("Flex", ranked.get("flex")))
+        if entry
+    ] or ["Aucune partie classee cette saison"]
+    wins = sum(g["resultat"] == "VICTOIRE" for g in games)
+    header = [
+        f"JOUEUR : {player}",
+        "CLASSEMENT : " + " | ".join(ranks),
+        f"BILAN SUR CES GAMES : {wins} victoire(s), {len(games) - wins} defaite(s) sur {len(games)}",
+    ]
+    return "\n".join(header) + "\n\n" + "\n\n".join(
+        _game_brief(i, g) for i, g in enumerate(games, start=1)
+    )

@@ -30,8 +30,8 @@ DEFAULT_GAMES = 2
 MAX_GAMES = 10
 
 # Mistral : modele modifiable dans les secrets sans toucher au code.
-# mistral-small-latest renvoie 429 en continu sur l'offre gratuite de ce compte,
-# ministral-8b-latest repond et gere le function calling.
-DEFAULT_MISTRAL_MODEL = "ministral-8b-latest"
+# Sur l'offre gratuite de ce compte, small, medium et magistral renvoient 429 en continu.
+# open-mistral-nemo (12B) repond et cite les chiffres bien plus fidelement que ministral-8b.
+DEFAULT_MISTRAL_MODEL = "open-mistral-nemo"
 
 CACHE_DIR = ".cache"

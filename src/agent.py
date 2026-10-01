@@ -11,6 +11,7 @@ import threading
 import time
 from dataclasses import dataclass
 
+import httpx2
 from mistralai.client import Mistral
 from mistralai.client.errors import SDKError
 
@@ -29,6 +30,9 @@ _MISTRAL_LOCK = threading.Lock()
 MISTRAL_BUSY_MESSAGE = (
     "Le cerveau du bot est en PLS, trop de monde veut se faire analyser en même temps "
     "(offre gratuite de Mistral, merci la pauvreté). Réessaie dans une minute."
+)
+MISTRAL_UNREACHABLE_MESSAGE = (
+    "Impossible de joindre Mistral pour l'instant (coupure réseau). Réessaie dans quelques secondes."
 )
 RIOT_MESSAGES = {
     riot_api.RiotAuthError: (
@@ -56,6 +60,10 @@ class MistralBusy(Exception):
     pass
 
 
+class MistralUnreachable(Exception):
+    pass
+
+
 @dataclass
 class Reply:
     text: str
@@ -80,9 +88,14 @@ def _complete(messages: list[dict], tool_choice: str):
                     messages=messages,
                     tools=TOOLS_SCHEMA,
                     tool_choice=tool_choice,
-                    temperature=0.8,
+                    temperature=0.4,
                     max_tokens=700,
                 )
+        except httpx2.TransportError:
+            # Coupure reseau ou timeout : un seul nouvel essai rapide.
+            if attempt >= 1:
+                raise MistralUnreachable() from None
+            time.sleep(2)
         except SDKError as exc:
             if exc.status_code != 429:
                 raise
@@ -91,10 +104,25 @@ def _complete(messages: list[dict], tool_choice: str):
             time.sleep(RETRY_WAITS_S[attempt])
 
 
-def _run_tool(arguments) -> tuple[dict | None, str | None]:
+def _tag_was_given(riot_id: str, user_text: str) -> bool:
+    """Le modele invente parfois un tag (ex. #TAG ou #EUW) : on exige qu'il soit dans le message."""
+    if "#" not in riot_id:
+        return False
+    tag = riot_id.rsplit("#", 1)[1].strip().lower()
+    return f"#{tag}" in user_text.replace(" ", "").lower()
+
+
+def _run_tool(arguments, user_text: str) -> tuple[dict | None, str | None]:
     """Execute l'outil. Renvoie (resultat, None) ou (None, message d'erreur a afficher)."""
     if isinstance(arguments, str):
         arguments = json.loads(arguments or "{}")
+    riot_id = str(arguments.get("riot_id", ""))
+    if not _tag_was_given(riot_id, user_text):
+        name = riot_id.split("#")[0].strip() or "ce joueur"
+        return None, (
+            f"Il me manque le tag de {name}. Donne-moi le Riot ID complet au format "
+            "Pseudo#TAG (le tag est après le # dans le client), je vais pas deviner."
+        )
     try:
         return get_player_games(**arguments), None
     except ToolError as exc:
@@ -113,13 +141,16 @@ def answer(history: list[dict]) -> Reply:
         first = _complete(messages, "auto").choices[0].message
     except MistralBusy:
         return Reply(MISTRAL_BUSY_MESSAGE)
+    except MistralUnreachable:
+        return Reply(MISTRAL_UNREACHABLE_MESSAGE)
 
     if not first.tool_calls:
         return Reply(_clean(first.content or ""))
 
     # Un seul joueur par roast : on traite le premier appel d'outil.
     call = first.tool_calls[0]
-    result, error = _run_tool(call.function.arguments)
+    user_text = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
+    result, error = _run_tool(call.function.arguments, user_text)
     if error:
         return Reply(error)
 
@@ -136,11 +167,13 @@ def answer(history: list[dict]) -> Reply:
         "role": "tool",
         "name": call.function.name,
         "tool_call_id": call.id,
-        "content": json.dumps(result["pour_le_llm"], ensure_ascii=False),
+        "content": result["pour_le_llm"],
     })
 
     try:
         roast = _complete(messages, "none").choices[0].message.content or ""
     except MistralBusy:
         return Reply(MISTRAL_BUSY_MESSAGE, result["affichage"])
+    except MistralUnreachable:
+        return Reply(MISTRAL_UNREACHABLE_MESSAGE, result["affichage"])
     return Reply(_clean(roast), result["affichage"])

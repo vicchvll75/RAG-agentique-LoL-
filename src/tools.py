@@ -65,17 +65,10 @@ def get_player_games(riot_id: str, count: int = DEFAULT_GAMES, region: str = DEF
             "soit il joue qu'en ARAM. Dans les deux cas c'est suspect."
         )
 
-    wins = sum(g["resultat"] == "VICTOIRE" for g in games)
     ranked = stats.ranked_summary(riot_api.get_ranked_entries(puuid, region))
-    summary = {
-        "joueur": player,
-        "region": region,
-        "classement": ranked,
-        "bilan_sur_ces_games": f"{wins} victoire(s), {len(games) - wins} defaite(s) sur {len(games)}",
-        "games_du_plus_recent_au_plus_ancien": games,
-    }
+    brief = stats.llm_brief(player, ranked, games)
     if len(games) < count:
-        summary["note"] = f"Seulement {len(games)} game(s) sur la Faille trouvee(s) recemment."
+        brief += f"\n\nNOTE : seulement {len(games)} game(s) sur la Faille trouvee(s) recemment."
 
     display = {"joueur": player, "region": region, "classement": ranked, "games": games}
     try:
@@ -85,7 +78,7 @@ def get_player_games(riot_id: str, count: int = DEFAULT_GAMES, region: str = DEF
     except (riot_api.RiotError, KeyError):
         pass  # Purement decoratif : on s'en passe si Riot ne repond pas.
 
-    return {"pour_le_llm": stats.for_llm(summary), "affichage": display}
+    return {"pour_le_llm": brief, "affichage": display}
 
 
 TOOLS_SCHEMA = [
